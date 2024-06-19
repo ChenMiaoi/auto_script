@@ -4,7 +4,7 @@ use crate::core::file_counter::FileCounter;
 use crate::core::kconfig_counter::KconfigCounter;
 use anyhow::Result;
 use clap::{Arg, Parser};
-use log::{info, warn};
+use log::{error, info, warn};
 use std::fs::File;
 use std::io;
 use std::io::BufRead;
@@ -33,6 +33,10 @@ struct Args {
     /// 是否需要解析Kconfig
     #[arg(long, short = 'k')]
     kconfig: bool,
+
+    /// 是否需要解析对应代码，该选项必须依赖于`kconfig`的设定
+    #[arg(long, short = 'r')]
+    kconfig_code: bool,
 
     /// 指定需要解析的内核位置
     #[arg(long, short = 'p', default_value = "/opt/linux-6.9.5")]
@@ -101,13 +105,14 @@ fn main() -> Result<()> {
             let mut fc = FileCounter::new(
                 arg.clone().to_string_lossy().into_owned(),
                 version.clone(),
-                arch_dir);
+                arch_dir,
+            );
             fc.search();
             fc.print();
         }
     }
 
-    if args.kconfig {
+    if args.kconfig && !args.kconfig_code {
         for arg in &args.arch {
             info!("fetch arch: {:?}", arg);
             let mut arch_path = args.kernel_path.clone();
@@ -119,11 +124,39 @@ fn main() -> Result<()> {
             let mut kc = KconfigCounter::new(
                 arg.clone().to_string_lossy().into_owned(),
                 version.clone(),
-                arch_path);
+                arch_path,
+            );
             if args.full {
                 kc.set_check_all();
             }
             kc.parse_kconfig();
+            kc.print();
+        }
+    }
+
+    if args.kconfig_code {
+        if !args.kconfig {
+            error!("Error: --kconfig_code (-r) requires --kconfig (-k) to be set");
+            std::process::exit(1);
+        }
+        for arg in &args.arch {
+            info!("fetch arch: {:?}", arg);
+            let mut arch_path = args.kernel_path.clone();
+            arch_path.push("arch");
+            arch_path.push(arg);
+            arch_path.push("Kconfig");
+            warn!("fetch {:?} arch Kconfig path -> {:?}", arg, arch_path);
+
+            let mut kc = KconfigCounter::new(
+                arg.clone().to_string_lossy().into_owned(),
+                version.clone(),
+                arch_path,
+            );
+            if args.full {
+                kc.set_check_all();
+            }
+            kc.parse_kconfig();
+            kc.analyze_code();
             kc.print();
         }
     }

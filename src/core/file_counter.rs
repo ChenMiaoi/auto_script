@@ -160,7 +160,10 @@ impl FileCounter {
 
     pub fn print(&self) {
         println!("{:-<70}", "");
-        println!("{:^70}", format!("Linux-{} Arch {}", self.version, self.arch.to_uppercase()));
+        println!(
+            "{:^70}",
+            format!("Linux-{} Arch {}", self.version, self.arch.to_uppercase())
+        );
         println!("{:-<70}", "");
         println!(
             "{: <30} {: <10} {: <10} {: <10} {: <10}",
