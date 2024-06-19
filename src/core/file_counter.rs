@@ -67,7 +67,7 @@ impl FileCounter {
     }
 
     pub fn search_dir(&mut self, path: &PathBuf) -> io::Result<()> {
-        // warn!("start to seach dir -> {:?}", path);
+        warn!("start to seach dir -> {:?}", path);
         if let Ok(entries) = fs::read_dir(path) {
             for entry in entries {
                 match entry {

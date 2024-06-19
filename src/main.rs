@@ -2,6 +2,7 @@ mod core;
 
 use crate::core::file_counter::FileCounter;
 use crate::core::kconfig_counter::KconfigCounter;
+use crate::core::log::set_logger;
 use anyhow::Result;
 use clap::{Arg, Parser};
 use log::{error, info, warn};
@@ -9,7 +10,6 @@ use std::fs::File;
 use std::io;
 use std::io::BufRead;
 use std::path::PathBuf;
-// use crate::core::log::set_logger;
 
 fn parse_bool(s: &str) -> Result<bool, String> {
     match s.to_lowercase().as_str() {
@@ -82,8 +82,8 @@ fn fetch_kernel_version(kernel_path: &PathBuf) -> Result<String> {
 }
 
 fn main() -> Result<()> {
-    // set_logger();
-    env_logger::Builder::from_env(env_logger::Env::default().default_filter_or("trace")).init();
+    set_logger();
+    // env_logger::Builder::from_env(env_logger::Env::default().default_filter_or("trace")).init();
     let args = Args::parse();
 
     info!("fetch linux kernel directory: {:?}", args.kernel_path);

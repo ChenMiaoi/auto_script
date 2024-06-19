@@ -117,7 +117,7 @@ impl KconfigCounter {
 
             if trim_line.starts_with("config ") {
                 component_name = get_filed(trim_line, "config");
-                // info!("fetch the component name -> {}", component_name);
+                info!("fetch the component name -> {}", component_name);
 
                 let entry = self
                     .component
@@ -138,6 +138,11 @@ impl KconfigCounter {
             }
 
             if trim_line.starts_with("depends on") {
+                info!(
+                    "fetch the component {} depend on -> {}",
+                    component_name,
+                    get_filed(trim_line, "depends on")
+                );
                 if let Some(stat) = self.component.get_mut(&component_name) {
                     stat.depend.push(get_filed(trim_line, "depends on"));
                 }
@@ -164,6 +169,12 @@ impl KconfigCounter {
             }
 
             if trim_line.starts_with("select") {
+                info!(
+                    "fetch the component {} select -> {}",
+                    component_name,
+                    get_filed(trim_line, "select")
+                );
+
                 if let Some(stat) = self.component.get_mut(&component_name) {
                     stat.select.push(get_filed(trim_line, "select"));
                 }
@@ -267,7 +278,10 @@ impl KconfigCounter {
         println!("{:-<90}", "");
         println!("{:^45} {:>20} Components", "SUM:", self.component.len());
         println!("{:-<90}", "");
-        println!("{:^45} {:>20} Total Code Lines", "SUM:", self.total_code_lines);
+        println!(
+            "{:^45} {:>20} Total Code Lines",
+            "SUM:", self.total_code_lines
+        );
         println!("{:-<90}", "");
 
         let mut input = String::new();
