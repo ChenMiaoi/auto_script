@@ -1,8 +1,8 @@
 use log::{error, warn};
 use std::collections::HashMap;
-use std::{fs, io};
 use std::io::BufRead;
 use std::path::PathBuf;
+use std::{fs, io};
 
 #[derive(Eq, Hash, PartialEq, Debug)]
 enum FileType {
@@ -47,14 +47,16 @@ struct FileStat {
 
 pub struct FileCounter {
     arch: String,
+    version: String,
     dir_path: PathBuf,
     file_count: HashMap<FileType, FileStat>,
 }
 
 impl FileCounter {
-    pub fn new(arch: String, dir_path: PathBuf) -> Self {
+    pub fn new(arch: String, version: String, dir_path: PathBuf) -> Self {
         FileCounter {
             arch,
+            version,
             dir_path,
             file_count: HashMap::new(),
         }
@@ -100,7 +102,12 @@ impl FileCounter {
                                 let trimmed = line.trim();
                                 if trimmed.is_empty() {
                                     blank += 1;
-                                } else if trimmed.starts_with("//") || trimmed.starts_with("/*") || trimmed.starts_with('*') || trimmed.starts_with('#') || trimmed.starts_with(';') {
+                                } else if trimmed.starts_with("//")
+                                    || trimmed.starts_with("/*")
+                                    || trimmed.starts_with('*')
+                                    || trimmed.starts_with('#')
+                                    || trimmed.starts_with(';')
+                                {
                                     comment += 1;
                                 } else {
                                     code += 1;
@@ -136,7 +143,12 @@ impl FileCounter {
             let trimmed = line.trim();
             if trimmed.is_empty() {
                 blank += 1;
-            } else if trimmed.starts_with("//") || trimmed.starts_with("/*") || trimmed.starts_with('*') || trimmed.starts_with('#') || trimmed.starts_with(';') {
+            } else if trimmed.starts_with("//")
+                || trimmed.starts_with("/*")
+                || trimmed.starts_with('*')
+                || trimmed.starts_with('#')
+                || trimmed.starts_with(';')
+            {
                 comment += 1;
             } else {
                 code += 1;
@@ -148,9 +160,12 @@ impl FileCounter {
 
     pub fn print(&self) {
         println!("{:-<70}", "");
-        println!("{: <30} ARCH {}", "", self.arch.to_uppercase());
+        println!("{:^70}", format!("Linux-{} Arch {}", self.version, self.arch.to_uppercase()));
         println!("{:-<70}", "");
-        println!("{: <30} {: <10} {: <10} {: <10} {: <10}", "Language", "files", "blank", "comment", "code");
+        println!(
+            "{: <30} {: <10} {: <10} {: <10} {: <10}",
+            "Language", "files", "blank", "comment", "code"
+        );
         println!("{:-<70}", "");
 
         let mut total_files = 0;
@@ -158,7 +173,7 @@ impl FileCounter {
         let mut total_comment = 0;
         let mut total_code = 0;
 
-        let mut sorted_stats: Vec<_>  = self.file_count.iter().collect();
+        let mut sorted_stats: Vec<_> = self.file_count.iter().collect();
         sorted_stats.sort_by(|a, b| b.1.code.cmp(&a.1.code));
 
         for (file_type, stats) in sorted_stats {
@@ -172,7 +187,10 @@ impl FileCounter {
                 FileType::TypeK => "kconfig",
                 FileType::TypeOther => "Other",
             };
-            println!("{: <30} {: <10} {: <10} {: <10} {: <10}", type_str, stats.files, stats.blank, stats.comment, stats.code);
+            println!(
+                "{: <30} {: <10} {: <10} {: <10} {: <10}",
+                type_str, stats.files, stats.blank, stats.comment, stats.code
+            );
 
             total_files += stats.files;
             total_blank += stats.blank;
@@ -181,16 +199,20 @@ impl FileCounter {
         }
 
         println!("{:-<70}", "");
-        println!("{: <30} {: <10} {: <10} {: <10} {: <10}", "SUM:", total_files, total_blank, total_comment, total_code);
+        println!(
+            "{: <30} {: <10} {: <10} {: <10} {: <10}",
+            "SUM:", total_files, total_blank, total_comment, total_code
+        );
         println!("{:-<70}", "");
     }
 }
 
-impl From<(String, PathBuf)> for FileCounter {
-    fn from(value: (String, PathBuf)) -> Self {
+impl From<(String, String, PathBuf)> for FileCounter {
+    fn from(value: (String, String, PathBuf)) -> Self {
         FileCounter {
             arch: value.0,
-            dir_path: value.1,
+            version: value.1,
+            dir_path: value.2,
             file_count: HashMap::new(),
         }
     }

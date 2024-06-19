@@ -1,6 +1,7 @@
 mod core;
 
 use crate::core::file_counter::FileCounter;
+use crate::core::kconfig_counter::KconfigCounter;
 use anyhow::Result;
 use clap::{Arg, Parser};
 use log::{info, warn};
@@ -10,16 +11,36 @@ use std::io::BufRead;
 use std::path::PathBuf;
 // use crate::core::log::set_logger;
 
+fn parse_bool(s: &str) -> Result<bool, String> {
+    match s.to_lowercase().as_str() {
+        "true" | "t" | "yes" | "y" | "1" => Ok(true),
+        "false" | "f" | "no" | "n" | "0" => Ok(false),
+        _ => Err(format!("invalid value for a boolean: {}", s)),
+    }
+}
+
 #[derive(Parser, Debug)]
 #[command(author, version, about, long_about)]
 struct Args {
     /// 指定需要解析的模块架构
-    #[arg(long, short, value_delimiter = ',', default_value = "riscv")]
+    #[arg(long, short = 'a', value_delimiter = ',', default_value = "riscv")]
     arch: Vec<PathBuf>,
 
+    /// 是否需要解析代码
+    #[arg(long, short = 'c')]
+    code: bool,
+
+    /// 是否需要解析Kconfig
+    #[arg(long, short = 'k')]
+    kconfig: bool,
+
     /// 指定需要解析的内核位置
-    #[arg(long, short, default_value = "/opt/linux-6.9.5")]
+    #[arg(long, short = 'p', default_value = "/opt/linux-6.9.5")]
     kernel_path: PathBuf,
+
+    /// 是否需要解析全部Kconfig
+    #[arg(long, short = 'f')]
+    full: bool,
 }
 
 fn fetch_kernel_version(kernel_path: &PathBuf) -> Result<String> {
@@ -69,16 +90,42 @@ fn main() -> Result<()> {
     let version = fetch_kernel_version(&version_file)?;
     info!("fetch linux kernel version: {:?}", version);
 
-    for arg in &args.arch {
-        info!("fetch arch: {:?}", arg);
-        let mut arch_dir = args.kernel_path.clone();
-        arch_dir.push("arch");
-        arch_dir.push(arg);
-        warn!("fetch {:?} arch directory path -> {:?}", arg, arch_dir);
+    if args.code {
+        for arg in &args.arch {
+            info!("fetch arch: {:?}", arg);
+            let mut arch_dir = args.kernel_path.clone();
+            arch_dir.push("arch");
+            arch_dir.push(arg);
+            warn!("fetch {:?} arch directory path -> {:?}", arg, arch_dir);
 
-        let mut fc = FileCounter::new(arg.clone().to_string_lossy().into_owned(), arch_dir);
-        fc.search();
-        fc.print();
+            let mut fc = FileCounter::new(
+                arg.clone().to_string_lossy().into_owned(),
+                version.clone(),
+                arch_dir);
+            fc.search();
+            fc.print();
+        }
+    }
+
+    if args.kconfig {
+        for arg in &args.arch {
+            info!("fetch arch: {:?}", arg);
+            let mut arch_path = args.kernel_path.clone();
+            arch_path.push("arch");
+            arch_path.push(arg);
+            arch_path.push("Kconfig");
+            warn!("fetch {:?} arch Kconfig path -> {:?}", arg, arch_path);
+
+            let mut kc = KconfigCounter::new(
+                arg.clone().to_string_lossy().into_owned(),
+                version.clone(),
+                arch_path);
+            if args.full {
+                kc.set_check_all();
+            }
+            kc.parse_kconfig();
+            kc.print();
+        }
     }
 
     Ok(())
